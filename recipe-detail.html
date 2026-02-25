@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菜谱详情 - 今天要去吃自选嘛</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 统一的 Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4CAF50',
+                        secondary: '#81C784',
+                        accent: '#FFF9C4',
+                        soft: '#F8BBD0',
+                        neutral: {
+                            100: '#F5F5F5',
+                            200: '#EEEEEE',
+                            300: '#E0E0E0',
+                            400: '#BDBDBD',
+                            500: '#9E9E9E',
+                            600: '#757575',
+                            700: '#616161',
+                            800: '#424242',
+                            900: '#212121',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Nunito', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+            }
+            .btn-primary {
+                @apply bg-primary text-white font-bold py-2 px-4 rounded-full hover:bg-secondary transition-colors duration-300 shadow-md hover:shadow-lg;
+            }
+            .btn-secondary {
+                @apply bg-white text-primary font-bold py-2 px-4 rounded-full border-2 border-primary hover:bg-accent transition-colors duration-300 shadow-sm hover:shadow-md;
+            }
+            .input-primary {
+                @apply border-2 border-neutral-300 rounded-full px-4 py-2 focus:outline-none focus:border-primary focus:ring-2 focus:ring-secondary focus:ring-opacity-50;
+            }
+        }
+    </style>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #FAFAFA;
+            cursor: url('https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/d32793c2769f48ef9978a55f83ddd337~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260224165723DC5237FB81E33171E39E&rrcfp=f06b921b&x-expires=1774515482&x-signature=LmeZmgQnnHKJmsY%2F%2BsIirYg9Swg%3D'), auto;
+        }
+        
+        .hero-pattern {
+            background-color: #f5f5f5;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234caf50' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        
+        .star-rating .fa-star,
+        .star-rating .fa-star-half-o {
+            color: #FFC107;
+        }
+        
+        .star-rating .fa-star-o {
+            color: #E0E0E0;
+        }
+        
+        .step-number {
+            background-color: #4CAF50;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .ingredient-item {
+            transition: transform 0.2s ease;
+        }
+        
+        .ingredient-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .comment-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .comment-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <div class="flex items-center space-x-2">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/d32793c2769f48ef9978a55f83ddd337~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260224165723DC5237FB81E33171E39E&rrcfp=f06b921b&x-expires=1774515482&x-signature=LmeZmgQnnHKJmsY%2F%2BsIirYg9Swg%3D" alt="Logo" class="h-10 w-10">
+                    <span class="text-2xl font-extrabold text-primary">今天要去吃自选嘛</span>
+                </div>
+                
+                <!-- 桌面导航菜单 -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="index.html" class="text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">首页</a>
+                    <a href="index.html#weekly-recommendations" class="text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">这周吃什么？</a>
+                    <a href="index.html#user-comments" class="text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">17号吃家</a>
+                    <a href="upload.html" class="text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">上传菜品</a>
+                </div>
+                
+                <!-- 桌面端用户菜单 -->
+                <div id="user-menu-logged-out" class="hidden md:flex items-center space-x-4">
+                    <button id="login-btn" class="btn-secondary">登录</button>
+                    <button id="register-btn" class="btn-primary">注册</button>
+                </div>
+                <div id="user-menu-logged-in" class="hidden md:flex items-center space-x-4">
+                    <span id="user-greeting" class="text-neutral-700 font-semibold"></span>
+                    <button id="user-center-btn" class="btn-secondary">用户中心</button>
+                    <button id="logout-btn" class="btn-outline">退出登录</button>
+                </div>
+    
+                <!-- 移动端菜单按钮 -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="text-neutral-700 hover:text-primary focus:outline-none mr-4">
+                        <i class="fa fa-bars text-2xl"></i>
+                    </button>
+                    <div id="mobile-user-menu-logged-out">
+                        <button id="mobile-login-btn" class="text-neutral-700 hover:text-primary focus:outline-none">
+                            <i class="fa fa-user-circle-o text-2xl"></i>
+                        </button>
+                    </div>
+                    <div id="mobile-user-menu-logged-in" class="hidden">
+                         <span id="mobile-user-greeting" class="text-neutral-700 font-semibold text-sm mr-2"></span>
+                        <button id="mobile-user-center-btn" class="text-neutral-700 hover:text-primary focus:outline-none">
+                            <i class="fa fa-user-circle text-2xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 移动端导航菜单 -->
+            <div id="mobile-menu" class="md:hidden hidden pt-4 pb-2">
+                <a href="index.html" class="block py-2 text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">首页</a>
+                <a href="index.html#weekly-recommendations" class="block py-2 text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">这周吃什么？</a>
+                <a href="index.html#user-comments" class="block py-2 text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">17号吃家</a>
+                <a href="upload.html" class="block py-2 text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">上传菜品</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 菜谱详情区域 -->
+    <section class="py-8 md:py-12">
+        <div class="container mx-auto px-4">
+            <!-- 返回按钮 -->
+            <div class="mb-6">
+                <a href="index.html" class="inline-flex items-center text-primary hover:text-secondary transition-colors">
+                    <i class="fa fa-arrow-left mr-2"></i> 返回首页
+                </a>
+            </div>
+            
+            <!-- 菜谱标题和基本信息 -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+                <div class="md:flex">
+                    <!-- 菜谱图片 -->
+                    <div class="md:w-1/2">
+                        <img class="dish-image" src="" alt="" class="w-full h-full object-cover">
+                    </div>
+                    
+                    <!-- 菜谱信息 -->
+                    <div class="p-6 md:p-8 md:w-1/2">
+                        <h1 class="dish-name text-3xl font-extrabold text-neutral-800 mb-4"></h1>
+                        
+                        <div class="flex items-center mb-6">
+                            <div class="star-rating text-xl mr-2"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="flex items-center">
+                                <i class="fa fa-clock-o text-primary text-xl mr-3"></i>
+                                <div>
+                                    <div class="text-sm text-neutral-500">准备时间</div>
+                                    <div id="recipe-prep-time" class="font-bold">15分钟</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fa fa-fire text-primary text-xl mr-3"></i>
+                                <div>
+                                    <div class="text-sm text-neutral-500">烹饪时间</div>
+                                    <div id="recipe-cook-time" class="font-bold">10分钟</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center">
+                                <i class="fa fa-calendar text-primary text-xl mr-3"></i>
+                                <div>
+                                    <div class="text-sm text-neutral-500">出现日期</div>
+                                    <div class="dish-date font-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-bold text-neutral-800 mb-2">简介</h3>
+                            <p class="dish-description text-neutral-600"></p>
+                        </div>
+                        
+                        <div class="flex space-x-4">
+                            <button class="btn-primary flex-1">
+                                <i class="fa fa-bookmark mr-2"></i>收藏菜谱
+                            </button>
+                            <button class="btn-secondary flex-1">
+                                <i class="fa fa-share-alt mr-2"></i>分享
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 食材和调料 -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+                <div class="p-6 md:p-8">
+                    <h2 class="text-2xl font-bold text-neutral-800 mb-6">如果想在家里做，你需要：</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 主要食材 -->
+                        <div>
+                            <h3 class="text-lg font-bold text-neutral-800 mb-4">主要食材</h3>
+                            <ul class="ingredients-list space-y-3"></ul>
+                        </div>
+                        
+                        <!-- 调料 -->
+                        <div>
+                            <h3 class="text-lg font-bold text-neutral-800 mb-4">调料</h3>
+                            <ul class="seasonings-list space-y-3"></ul>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 烹饪步骤 -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+                <div class="p-6 md:p-8">
+                    <h2 class="text-2xl font-bold text-neutral-800 mb-6">烹饪步骤</h2>
+                    
+                    <ol class="space-y-6" id="cooking-steps">
+                        <li class="flex">
+                            <div class="step-number flex-shrink-0">1</div>
+                            <div>
+                                <h3 class="text-lg font-bold text-neutral-800 mb-2">准备食材</h3>
+                                <p class="text-neutral-600">将猪里脊肉洗净，切成薄片；彩椒洗净，去籽去蒂，切成块状；大蒜和生姜切碎备用。</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="step-number flex-shrink-0">2</div>
+                            <div>
+                                <h3 class="text-lg font-bold text-neutral-800 mb-2">腌制肉片</h3>
+                                <p class="text-neutral-600">将切好的肉片放入碗中，加入生抽、料酒、淀粉，搅拌均匀，腌制15分钟使其入味。</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="step-number flex-shrink-0">3</div>
+                            <div>
+                                <h3 class="text-lg font-bold text-neutral-800 mb-2">炒制肉片</h3>
+                                <p class="text-neutral-600">热锅倒油，放入腌制好的肉片，快速翻炒至变色，盛出备用。</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="step-number flex-shrink-0">4</div>
+                            <div>
+                                <h3 class="text-lg font-bold text-neutral-800 mb-2">炒制彩椒</h3>
+                                <p class="text-neutral-600">锅中再倒入少许油，放入蒜末和姜末爆香，然后加入彩椒块翻炒至微软。</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="step-number flex-shrink-0">5</div>
+                            <div>
+                                <h3 class="text-lg font-bold text-neutral-800 mb-2">混合翻炒</h3>
+                                <p class="text-neutral-600">将炒好的肉片倒回锅中，与彩椒一起翻炒均匀，加入适量盐和少许糖调味，翻炒均匀即可出锅。</p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- 小贴士 -->
+            <div class="bg-accent rounded-xl shadow-md overflow-hidden mb-8">
+                <div class="p-6 md:p-8">
+                    <div class="flex items-start">
+                        <i class="fa fa-lightbulb-o text-primary text-3xl mr-4 mt-1"></i>
+                        <div>
+                            <h2 class="text-2xl font-bold text-neutral-800 mb-4">厨师小贴士</h2>
+                            <ul class="space-y-3 text-neutral-700">
+                                <li class="flex items-start">
+                                    <i class="fa fa-check-circle text-primary mr-3 mt-1"></i>
+                                    <span>肉片腌制时加入淀粉可以使肉质更加嫩滑。</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fa fa-check-circle text-primary mr-3 mt-1"></i>
+                                    <span>彩椒炒制时间不宜过长，保持脆嫩的口感更佳。</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fa fa-check-circle text-primary mr-3 mt-1"></i>
+                                    <span>可以根据个人口味调整调料，喜欢吃辣的可以加入干辣椒或辣椒酱。</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 用户评论 -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+                <div class="p-6 md:p-8">
+                    <h2 class="text-2xl font-bold text-neutral-800 mb-6">用户评论</h2>
+                    
+                    <!-- 评分统计 -->
+                    <div class="flex flex-col md:flex-row mb-8">
+                        <div class="md:w-1/3 flex flex-col items-center justify-center mb-6 md:mb-0">
+                            <div class="text-5xl font-bold text-primary mb-2">4.5</div>
+                            <div class="star-rating text-xl mb-2">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-half-o"></i>
+                            </div>
+                            <div class="text-neutral-500">基于 128 条评价</div>
+                        </div>
+                        
+                        <div class="md:w-2/3">
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm font-medium">5 星</div>
+                                    <div class="flex-1 h-4 bg-neutral-200 rounded-full overflow-hidden">
+                                        <div class="bg-primary h-full rounded-full" style="width: 75%"></div>
+                                    </div>
+                                    <div class="w-12 text-right text-sm text-neutral-500">75%</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm font-medium">4 星</div>
+                                    <div class="flex-1 h-4 bg-neutral-200 rounded-full overflow-hidden">
+                                        <div class="bg-primary h-full rounded-full" style="width: 15%"></div>
+                                    </div>
+                                    <div class="w-12 text-right text-sm text-neutral-500">15%</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm font-medium">3 星</div>
+                                    <div class="flex-1 h-4 bg-neutral-200 rounded-full overflow-hidden">
+                                        <div class="bg-primary h-full rounded-full" style="width: 5%"></div>
+                                    </div>
+                                    <div class="w-12 text-right text-sm text-neutral-500">5%</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm font-medium">2 星</div>
+                                    <div class="flex-1 h-4 bg-neutral-200 rounded-full overflow-hidden">
+                                        <div class="bg-primary h-full rounded-full" style="width: 3%"></div>
+                                    </div>
+                                    <div class="w-12 text-right text-sm text-neutral-500">3%</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm font-medium">1 星</div>
+                                    <div class="flex-1 h-4 bg-neutral-200 rounded-full overflow-hidden">
+                                        <div class="bg-primary h-full rounded-full" style="width: 2%"></div>
+                                    </div>
+                                    <div class="w-12 text-right text-sm text-neutral-500">2%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 评论表单 -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-bold text-neutral-800 mb-4">添加你的评论</h3>
+                        
+                        <div class="mb-4">
+                            <label class="block text-neutral-700 font-medium mb-2">你的评分</label>
+                            <div class="star-rating text-2xl" id="user-rating">
+                                <i class="fa fa-star-o cursor-pointer hover:text-primary transition-colors" data-rating="1"></i>
+                                <i class="fa fa-star-o cursor-pointer hover:text-primary transition-colors" data-rating="2"></i>
+                                <i class="fa fa-star-o cursor-pointer hover:text-primary transition-colors" data-rating="3"></i>
+                                <i class="fa fa-star-o cursor-pointer hover:text-primary transition-colors" data-rating="4"></i>
+                                <i class="fa fa-star-o cursor-pointer hover:text-primary transition-colors" data-rating="5"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="comment-text" class="block text-neutral-700 font-medium mb-2">评论内容</label>
+                            <textarea id="comment-text" rows="4" class="w-full border-2 border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:border-primary focus:ring-2 focus:ring-secondary focus:ring-opacity-50" placeholder="分享你的烹饪体验..."></textarea>
+                        </div>
+                        
+                        <button id="submit-comment" class="btn-primary">
+                            <i class="fa fa-paper-plane mr-2"></i>提交评论
+                        </button>
+                    </div>
+                    
+                    <!-- 评论列表 -->
+                    <div class="space-y-6" id="comments-list">
+                        <!-- 评论 1 -->
+                        <div class="comment-card bg-neutral-50 rounded-xl p-6">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg mr-4">
+                                    <i class="fa fa-user"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-neutral-800">小明</h4>
+                                    <div class="flex items-center">
+                                        <div class="star-rating text-sm">
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                        </div>
+                                        <span class="text-neutral-500 text-sm ml-2">2023-06-15</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-neutral-600">这道菜真的太好吃了！按照菜谱做出来的味道和餐厅一样，甚至更好！彩椒的脆嫩和肉片的嫩滑完美结合，家人都很喜欢。</p>
+                        </div>
+                        
+                        <!-- 评论 2 -->
+                        <div class="comment-card bg-neutral-50 rounded-xl p-6">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-secondary text-white rounded-full flex items-center justify-center font-bold text-lg mr-4">
+                                    <i class="fa fa-user"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-neutral-800">小红</h4>
+                                    <div class="flex items-center">
+                                        <div class="star-rating text-sm">
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star-o"></i>
+                                        </div>
+                                        <span class="text-neutral-500 text-sm ml-2">2023-06-10</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-neutral-600">很详细的菜谱，步骤清晰易懂。我按照菜谱做了一次，味道不错，就是彩椒炒的时间有点长，下次会注意火候。另外，我加了一点花椒粉，增加了一些麻味，也很好吃。</p>
+                        </div>
+                        
+                        <!-- 评论 3 -->
+                        <div class="comment-card bg-neutral-50 rounded-xl p-6">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-accent text-primary rounded-full flex items-center justify-center font-bold text-lg mr-4">
+                                    <i class="fa fa-user"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-neutral-800">小李</h4>
+                                    <div class="flex items-center">
+                                        <div class="star-rating text-sm">
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star-half-o"></i>
+                                            <i class="fa fa-star-o"></i>
+                                        </div>
+                                        <span class="text-neutral-500 text-sm ml-2">2023-06-05</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-neutral-600">作为一个厨房新手，这个菜谱对我来说很友好。步骤简单明了，食材也容易购买。成品颜色鲜艳，看起来很有食欲。唯一的小建议是可以注明肉片的厚度，我切得有点厚了，导致烹饪时间延长。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 加载更多评论 -->
+                    <div class="text-center mt-8">
+                        <button id="load-more-comments" class="btn-secondary">
+                            <i class="fa fa-refresh mr-2"></i>加载更多评论
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-neutral-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 关于我们 -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">关于我们</h3>
+                    <p class="text-neutral-400 mb-4">
+                        "今天要去吃自选嘛"是一个分享美食、菜谱和用餐体验的平台，让每一餐都充满惊喜！
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-white hover:text-accent transition-colors">
+                            <i class="fa fa-weixin text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-white hover:text-accent transition-colors">
+                            <i class="fa fa-weibo text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-white hover:text-accent transition-colors">
+                            <i class="fa fa-instagram text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-white hover:text-accent transition-colors">
+                            <i class="fa fa-youtube-play text-2xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 联系我们 -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">想说点啥？</h3>
+                    <form id="contact-form" class="space-y-4">
+                        <div>
+                            <input type="text" placeholder="你的名字" class="w-full bg-neutral-700 border border-neutral-600 rounded-lg px-4 py-2 text-white placeholder-neutral-400 focus:outline-none focus:border-primary">
+                        </div>
+                        <div>
+                            <input type="text" placeholder="你的联系方式（也可以不写噢！）" class="w-full bg-neutral-700 border border-neutral-600 rounded-lg px-4 py-2 text-white placeholder-neutral-400 focus:outline-none focus:border-primary">
+                        </div>
+                        <div>
+                            <textarea rows="4" placeholder="请输入你的留言..." class="w-full bg-neutral-700 border border-neutral-600 rounded-lg px-4 py-2 text-white placeholder-neutral-400 focus:outline-none focus:border-primary"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary w-full">
+                            <i class="fa fa-paper-plane mr-2"></i>发送留言
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-neutral-700 mt-8 pt-8 text-center">
+                <p class="text-neutral-500">© 2026 今天要去吃自选嘛. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // 菜谱数据
+        const recipes = {
+            1: {
+                id: 1,
+                title: '红烧肉',
+                image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/685cb2312f794fe2ae5118b1d7e45fbe~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026022509205751EE4A53374EA1C3884F&rrcfp=f06b921b&x-expires=1774574494&x-signature=cIrhLO%2BmOolJpXbx673Irs4xqW0%3D',
+                rating: 5.0,
+                prepTime: '20分钟',
+                cookTime: '60分钟',
+                servings: '4人',
+                cuisine: '中式',
+                dates: '周一、周四',
+                description: '肥而不腻的经典红烧肉，入口即化，香气四溢。这道菜是中国传统名菜，深受大众喜爱。',
+                ingredients: [
+                    '猪里脊肉 200克',
+                    '红黄彩椒 各1个',
+                    '青椒 1个',
+                    '大蒜 3瓣',
+                    '生姜 1小块'
+                ],
+                seasonings: [
+                    '生抽 2汤匙',
+                    '料酒 1汤匙',
+                    '淀粉 1茶匙',
+                    '盐 适量',
+                    '糖 少许',
+                    '食用油 3汤匙'
+                ],
+                steps: [
+                    {
+                        title: '准备食材',
+                        description: '将猪里脊肉洗净，切成薄片；彩椒洗净，去籽去蒂，切成块状；大蒜和生姜切碎备用。'
+                    },
+                    {
+                        title: '腌制肉片',
+                        description: '将切好的肉片放入碗中，加入生抽、料酒、淀粉，搅拌均匀，腌制15分钟使其入味。'
+                    },
+                    {
+                        title: '炒制肉片',
+                        description: '热锅倒油，放入腌制好的肉片，快速翻炒至变色，盛出备用。'
+                    },
+                    {
+                        title: '炒制彩椒',
+                        description: '锅中再倒入少许油，放入蒜末和姜末爆香，然后加入彩椒块翻炒至微软。'
+                    },
+                    {
+                        title: '混合翻炒',
+                        description: '将炒好的肉片倒回锅中，与彩椒一起翻炒均匀，加入适量盐和少许糖调味，翻炒均匀即可出锅。'
+                    }
+                ],
+                tips: [
+                    '肉片腌制时加入淀粉可以使肉质更加嫩滑。',
+                    '彩椒炒制时间不宜过长，保持脆嫩的口感更佳。',
+                    '可以根据个人口味调整调料，喜欢吃辣的可以加入干辣椒或辣椒酱。'
+                ]
+            },
+            2: {
+                id: 2,
+                title: '宫保鸡丁盖饭',
+                image: 'https://p11-doubao-search-sign.byteimg.com/labis/422312d87fd1b8af350a246b0dec988c~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1787475464&x-signature=ocXcriggxmdpa5VHy5p%2FAF1mKik%3D',
+                rating: 4.0,
+                prepTime: '15分钟',
+                cookTime: '15分钟',
+                servings: '2人',
+                cuisine: '中式',
+                description: '经典川菜，鸡肉嫩滑，花生香脆，配以米饭简直完美。这道菜酸甜可口，微辣开胃，是很多人的最爱。',
+                ingredients: [
+                    '鸡胸肉 250克',
+                    '花生米 50克',
+                    '干辣椒 8个',
+                    '葱白 2根',
+                    '大蒜 3瓣',
+                    '生姜 1小块',
+                    '米饭 2碗'
+                ],
+                seasonings: [
+                    '生抽 2汤匙',
+                    '料酒 1汤匙',
+                    '淀粉 1茶匙',
+                    '白糖 1茶匙',
+                    '醋 1汤匙',
+                    '盐 少许',
+                    '食用油 3汤匙'
+                ],
+                steps: [
+                    {
+                        title: '准备食材',
+                        description: '将鸡胸肉洗净，切成1.5厘米见方的小丁；花生米提前用油炸熟或烤香；干辣椒剪成段；葱白切段；大蒜和生姜切碎备用。'
+                    },
+                    {
+                        title: '腌制鸡肉',
+                        description: '将鸡丁放入碗中，加入生抽、料酒、淀粉，搅拌均匀，腌制15分钟使其入味。'
+                    },
+                    {
+                        title: '调制宫保汁',
+                        description: '将生抽、白糖、醋、盐混合成宫保汁备用。'
+                    },
+                    {
+                        title: '炒制鸡丁',
+                        description: '热锅倒油，放入腌制好的鸡丁，快速翻炒至变色，盛出备用。'
+                    },
+                    {
+                        title: '炒制调料',
+                        description: '锅中再倒入少许油，放入干辣椒段、蒜末和姜末爆香，然后加入葱白段翻炒。'
+                    },
+                    {
+                        title: '混合翻炒',
+                        description: '将炒好的鸡丁倒回锅中，加入宫保汁翻炒均匀，最后加入花生米翻炒几下即可出锅。'
+                    },
+                    {
+                        title: '装盘',
+                        description: '将做好的宫保鸡丁浇在米饭上，即可享用。'
+                    }
+                ],
+                tips: [
+                    '鸡肉最好选用鸡胸肉，肉质嫩滑。',
+                    '花生米最好用油炸或烤香，这样口感更脆。',
+                    '干辣椒不要炒糊，否则会有苦味。',
+                    '宫保汁的比例可以根据个人口味调整。'
+                ]
+            },
+            3: {
+                id: 3,
+                title: '班尼迪克蛋',
+                image: 'https://p3-doubao-search-sign.byteimg.com/labis/c14c39f94868bffb1b3fe32d0ddbd4d7~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1787475464&x-signature=V80Bz1Z7qNByOemn7vnjqxDlz5A%3D',
+                rating: 5.0,
+                prepTime: '20分钟',
+                cookTime: '10分钟',
+                servings: '2人',
+                cuisine: '西式',
+                description: '西式经典早餐，流心蛋搭配荷兰酱，口感丰富层次分明。这道菜虽然看起来复杂，但掌握了技巧后其实并不难。',
+                ingredients: [
+                    '鸡蛋 4个',
+                    '英式松饼 2个',
+                    '火腿片 4片',
+                    '芝麻菜 适量',
+                    '黄油 2汤匙'
+                ],
+                seasonings: [
+                    '柠檬汁 1汤匙',
+                    '盐 适量',
+                    '黑胡椒 适量',
+                    '白醋 1汤匙（用于煮蛋）'
+                ],
+                steps: [
+                    {
+                        title: '准备荷兰酱',
+                        description: '将2个蛋黄放入碗中，加入柠檬汁、盐和黑胡椒，用打蛋器快速打发至颜色变浅。然后将碗放在热水上，继续打发至酱汁浓稠。最后加入软化的黄油，搅拌均匀。'
+                    },
+                    {
+                        title: '准备松饼',
+                        description: '将英式松饼切成两半，放入烤面包机中烤至表面微黄。'
+                    },
+                    {
+                        title: '准备火腿',
+                        description: '将火腿片放入平底锅中，小火煎至表面微焦。'
+                    },
+                    {
+                        title: '煮水波蛋',
+                        description: '锅中加水烧开，加入白醋。将鸡蛋打入碗中，然后轻轻倒入沸水中，煮约3分钟至蛋白凝固，蛋黄仍呈流质状态。'
+                    },
+                    {
+                        title: '组装',
+                        description: '将烤好的松饼放在盘子上，上面放一片火腿，再放上煮好的水波蛋，最后淋上荷兰酱，撒上黑胡椒和芝麻菜装饰即可。'
+                    }
+                ],
+                tips: [
+                    '煮水波蛋时加入白醋可以帮助蛋白快速凝固。',
+                    '荷兰酱制作时要注意温度，不要过热，否则蛋黄会凝固。',
+                    '如果没有英式松饼，可以用普通吐司代替。',
+                    '水波蛋煮好后可以用厨房纸轻轻吸去表面的水分。'
+                ]
+            }
+        };
+        
+        // 获取URL参数
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+        
+        // 加载菜谱详情
+        function loadRecipeDetails() {
+            const dishName = getUrlParameter('dish');
+            
+            if (dishName && dishDatabase[dishName]) {
+                const dish = dishDatabase[dishName];
+                
+                // 更新页面标题
+                document.title = `${dish.name} - 今天要去吃自选嘛`;
+                
+                // 更新菜谱图片
+                const dishImage = document.querySelector('.dish-image');
+                if (dishImage) {
+                    dishImage.src = dish.image;
+                    dishImage.alt = dish.name;
+                }
+                
+                // 更新菜谱标题
+                const dishNameElement = document.querySelector('.dish-name');
+                if (dishNameElement) {
+                    dishNameElement.textContent = dish.name;
+                }
+                
+                // 更新菜谱评分
+                const starRating = document.querySelector('.star-rating');
+                if (starRating) {
+                    starRating.innerHTML = '';
+                    const fullStars = Math.floor(dish.rating);
+                    const hasHalfStar = dish.rating % 1 >= 0.5;
+                    
+                    for (let i = 1; i <= 5; i++) {
+                        if (i <= fullStars) {
+                            starRating.innerHTML += '<i class="fa fa-star"></i>';
+                        } else if (i === fullStars + 1 && hasHalfStar) {
+                            starRating.innerHTML += '<i class="fa fa-star-half-o"></i>';
+                        } else {
+                            starRating.innerHTML += '<i class="fa fa-star-o"></i>';
+                        }
+                    }
+                }
+                
+                // 更新出现日期
+                const dishDate = document.querySelector('.dish-date');
+                if (dishDate) {
+                    dishDate.textContent = dish.date;
+                }
+                
+                // 更新菜谱描述
+                const dishDescription = document.querySelector('.dish-description');
+                if (dishDescription) {
+                    dishDescription.textContent = dish.description;
+                }
+                
+                // 更新食材列表
+                const ingredientsList = document.querySelector('.ingredients-list');
+                if (ingredientsList) {
+                    ingredientsList.innerHTML = '';
+                    dish.ingredients.forEach(ingredient => {
+                        const li = document.createElement('li');
+                        li.className = 'ingredient-item flex items-center';
+                        li.innerHTML = `
+                            <i class="fa fa-check-circle text-primary mr-3"></i>
+                            <span>${ingredient}</span>
+                        `;
+                        ingredientsList.appendChild(li);
+                    });
+                }
+                
+                // 更新烹饪步骤
+                const cookingSteps = document.getElementById('cooking-steps');
+                if (cookingSteps) {
+                    cookingSteps.innerHTML = '';
+                    dish.steps.forEach((step, index) => {
+                        const li = document.createElement('li');
+                        li.className = 'flex';
+                        li.innerHTML = `
+                            <div class="step-number flex-shrink-0">${index + 1}</div>
+                            <div>
+                                <h3 class="text-lg font-bold text-neutral-800 mb-2">步骤 ${index + 1}</h3>
+                                <p class="text-neutral-600">${step}</p>
+                            </div>
+                        `;
+                        cookingSteps.appendChild(li);
+                    });
+                }
+                
+                // 更新小贴士
+                const tipsSection = document.querySelector('.bg-accent .space-y-3');
+                if (tipsSection && dish.tips) {
+                    tipsSection.innerHTML = '';
+                    const tipLi = document.createElement('li');
+                    tipLi.className = 'flex items-start';
+                    tipLi.innerHTML = `
+                        <i class="fa fa-check-circle text-primary mr-3 mt-1"></i>
+                        <span>${dish.tips}</span>
+                    `;
+                    tipsSection.appendChild(tipLi);
+                }
+            }
+        }
+        
+        // 用户评分功能
+        function initUserRating() {
+            const stars = document.querySelectorAll('#user-rating i');
+            let currentRating = 0;
+            
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = parseInt(this.getAttribute('data-rating'));
+                    currentRating = rating;
+                    updateStars(rating);
+                });
+                
+                star.addEventListener('mouseover', function() {
+                    const rating = parseInt(this.getAttribute('data-rating'));
+                    updateStars(rating);
+                });
+            });
+            
+            document.getElementById('user-rating').addEventListener('mouseleave', function() {
+                updateStars(currentRating);
+            });
+            
+            function updateStars(rating) {
+                stars.forEach(star => {
+                    const starRating = parseInt(star.getAttribute('data-rating'));
+                    if (starRating <= rating) {
+                        star.className = 'fa fa-star cursor-pointer text-primary transition-colors';
+                    } else {
+                        star.className = 'fa fa-star-o cursor-pointer hover:text-primary transition-colors';
+                    }
+                });
+            }
+        }
+        
+        // 提交评论功能
+        function initCommentSubmission() {
+            const submitButton = document.getElementById('submit-comment');
+            const commentText = document.getElementById('comment-text');
+            const commentsList = document.getElementById('comments-list');
+            
+            submitButton.addEventListener('click', function() {
+                const stars = document.querySelectorAll('#user-rating i');
+                let rating = 0;
+                
+                stars.forEach(star => {
+                    if (star.classList.contains('fa-star')) {
+                        rating++;
+                    }
+                });
+                
+                const text = commentText.value.trim();
+                
+                if (rating > 0 && text) {
+                    // 创建新评论
+                    const newComment = document.createElement('div');
+                    newComment.className = 'comment-card bg-neutral-50 rounded-xl p-6';
+                    
+                    // 生成星级评分HTML
+                    let starsHTML = '';
+                    for (let i = 1; i <= 5; i++) {
+                        if (i <= rating) {
+                            starsHTML += '<i class="fa fa-star"></i>';
+                        } else {
+                            starsHTML += '<i class="fa fa-star-o"></i>';
+                        }
+                    }
+                    
+                    // 获取当前日期
+                    const today = new Date();
+                    const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    
+                    newComment.innerHTML = `
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg mr-4">
+                                <i class="fa fa-user"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-neutral-800">访客用户</h4>
+                                <div class="flex items-center">
+                                    <div class="star-rating text-sm">
+                                        ${starsHTML}
+                                    </div>
+                                    <span class="text-neutral-500 text-sm ml-2">${dateString}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-neutral-600">${text}</p>
+                    `;
+                    
+                    // 添加到评论列表的顶部
+                    commentsList.insertBefore(newComment, commentsList.firstChild);
+                    
+                    // 清空评论框和评分
+                    commentText.value = '';
+                    stars.forEach(star => {
+                        star.className = 'fa fa-star-o cursor-pointer hover:text-primary transition-colors';
+                    });
+                    
+                    // 显示成功提示
+                    alert('评论提交成功！');
+                } else {
+                    alert('请先评分并填写评论内容！');
+                }
+            });
+        }
+        
+        // 加载更多评论功能
+        function initLoadMoreComments() {
+            const loadMoreButton = document.getElementById('load-more-comments');
+            
+            loadMoreButton.addEventListener('click', function() {
+                // 模拟加载中状态
+                loadMoreButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>加载中...';
+                loadMoreButton.disabled = true;
+                
+                // 模拟异步加载
+                setTimeout(function() {
+                    // 恢复按钮状态
+                    loadMoreButton.innerHTML = '<i class="fa fa-refresh mr-2"></i>加载更多评论';
+                    loadMoreButton.disabled = false;
+                    
+                    // 显示没有更多评论的提示
+                    alert('没有更多评论了！');
+                }, 1500);
+            });
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRecipeDetails();
+            initUserRating();
+            initCommentSubmission();
+            initLoadMoreComments();
+        });
+    </script>
+</body>
+</html>

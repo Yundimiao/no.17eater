@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今天要去吃自选嘛</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 统一的 Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4CAF50',
+                        secondary: '#81C784',
+                        accent: '#FFF9C4',
+                        soft: '#F8BBD0',
+                        neutral: {
+                            100: '#F5F5F5',
+                            200: '#EEEEEE',
+                            300: '#E0E0E0',
+                            400: '#BDBDBD',
+                            500: '#9E9E9E',
+                            600: '#757575',
+                            700: '#616161',
+                            800: '#424242',
+                            900: '#212121',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Nunito', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+            }
+            .btn-primary {
+                @apply bg-primary text-white font-bold py-2 px-4 rounded-full hover:bg-secondary transition-colors duration-300 shadow-md hover:shadow-lg;
+            }
+            .btn-secondary {
+                @apply bg-white text-primary font-bold py-2 px-4 rounded-full border-2 border-primary hover:bg-accent transition-colors duration-300 shadow-sm hover:shadow-md;
+            }
+            .input-primary {
+                @apply border-2 border-neutral-300 rounded-full px-4 py-2 focus:outline-none focus:border-primary focus:ring-2 focus:ring-secondary focus:ring-opacity-50;
+            }
+        }
+    </style>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #FAFAFA;
+            cursor: url('https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/d32793c2769f48ef9978a55f83ddd337~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260224165723DC5237FB81E33171E39E&rrcfp=f06b921b&x-expires=1774515482&x-signature=LmeZmgQnnHKJmsY%2F%2BsIirYg9Swg%3D'), auto;
+        }
+        
+        .hero-pattern {
+            background-color: #f5f5f5;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234caf50' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        
+        .recipe-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .star-rating .fa-star,
+        .star-rating .fa-star-half-o {
+            color: #FFC107;
+        }
+        
+        .star-rating .fa-star-o {
+            color: #E0E0E0;
+        }
+        
+        .chef-avatar {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .food-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .food-icon:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <div class="flex items-center space-x-2">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/d32793c2769f48ef9978a55f83ddd337~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260224165723DC5237FB81E33171E39E&rrcfp=f06b921b&x-expires=1774515482&x-signature=LmeZmgQnnHKJmsY%2F%2BsIirYg9Swg%3D" alt="Logo" class="h-10 w-10">
+                    <span class="text-2xl font-extrabold text-primary">今天要去吃自选嘛</span>
+                </div>
+                
+                <!-- 桌面导航菜单 -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="#" class="text-lg font-bold text-primary border-b-2 border-primary">首页</a>
+                    <a href="#weekly-recommendations" class="text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">这周吃什么？</a>
+                    <a href="upload.html" class="text-xl font-bold text-white bg-primary hover:bg-secondary px-6 py-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">有话要说</a>
+                    <a href="#user-comments" class="text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">17号吃家</a>
+                </div>
+                
+                <!-- 桌面端用户菜单 -->
+                <div id="user-menu-logged-out" class="hidden md:flex items-center space-x-4">
+                    <button id="login-btn" class="btn-secondary">登录</button>
+                    <button id="register-btn" class="btn-primary">注册</button>
+                </div>
+                <div id="user-menu-logged-in" class="hidden md:flex items-center space-x-4">
+                    <span id="user-greeting" class="text-neutral-700 font-semibold"></span>
+                    <button id="user-center-btn" class="btn-secondary">用户中心</button>
+                    <button id="logout-btn" class="btn-outline">退出登录</button>
+                </div>
+    
+                <!-- 移动端菜单按钮 -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="text-neutral-700 hover:text-primary focus:outline-none mr-4">
+                        <i class="fa fa-bars text-2xl"></i>
+                    </button>
+                    <div id="mobile-user-menu-logged-out">
+                        <button id="mobile-login-btn" class="text-neutral-700 hover:text-primary focus:outline-none">
+                            <i class="fa fa-user-circle-o text-2xl"></i>
+                        </button>
+                    </div>
+                    <div id="mobile-user-menu-logged-in" class="hidden">
+                         <span id="mobile-user-greeting" class="text-neutral-700 font-semibold text-sm mr-2"></span>
+                        <button id="mobile-user-center-btn" class="text-neutral-700 hover:text-primary focus:outline-none">
+                            <i class="fa fa-user-circle text-2xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 移动端导航菜单 -->
+            <div id="mobile-menu" class="md:hidden hidden pt-4 pb-2">
+                <a href="#" class="block py-2 text-lg font-bold text-primary">首页</a>
+                <a href="#weekly-recommendations" class="block py-2 text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">这周吃什么？</a>
+                <a href="#user-comments" class="block py-2 text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">吃家评论</a>
+                <a href="upload.html" class="block py-2 text-lg font-semibold text-neutral-700 hover:text-primary transition-colors">上传菜品</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 英雄区域 -->
+    <section class="hero-pattern py-16 md:py-24">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <!-- 左侧文本 -->
+                <div class="md:w-1/2 mb-8 md:mb-0">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-neutral-800 mb-4">
+                        今天，<span class="text-primary">要去吃自选嘛？</span>
+                    </h1>
+                    <p class="text-xl md:text-2xl text-neutral-600 mb-8">
+                        发现美味食谱，分享你的用餐体验，让每一餐都充满惊喜！
+                    </p>
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                        <a href="#" id="download-recipe-btn" class="btn-primary text-center">
+                            <i class="fa fa-download mr-2"></i>一键下载本周柠檬树古典版菜谱
+                        </a>
+                        <a href="#" id="view-menu-btn" class="btn-secondary text-center">
+                            <i class="fa fa-code mr-2"></i>让我看看文科生手搓网站菜单啥样
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 右侧图片 -->
+                <div class="md:w-1/2 flex justify-center">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/baaf873414594d64ab739dd291e2b34d~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260224165723DC5237FB81E33171E39E&rrcfp=f06b921b&x-expires=1774515482&x-signature=%2Bw6OkA8a8KV9UiimPIdShNj7a88%3D" alt="厨师和服务员" class="w-64 md:w-80 lg:w-96 chef-avatar">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 搜索区域 -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl mx-auto text-center mb-8">
+                <p class="text-lg text-neutral-600">快速拔草？还是快速避雷？</p>
+            </div>
+            
+            <div class="max-w-2xl mx-auto relative">
+                <input type="text" id="search-input" placeholder="输入菜谱名称、食材或菜系..." class="input-primary w-full py-3 pl-5 pr-12 text-lg">
+                <button id="search-button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary hover:text-secondary transition-colors">
+                    <i class="fa fa-search text-2xl"></i>
+                </button>
+            </div>
+            
+            <!-- 搜索结果区域 -->
+            <div id="search-results" class="mt-8 hidden">
+                <h3 class="text-2xl font-bold text-neutral-800 mb-4">搜索结果</h3>
+                <div id="search-results-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 搜索结果将通过JavaScript动态插入 -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+    <!-- 这周吃什么 -->
+    <section id="weekly-recommendations" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-neutral-800 mb-4">这周吃什么？</h2>
+                <p class="text-lg text-neutral-600">柠檬树投喂中</p>
+            </div>
+            
+            <div id="weekly-menu-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 菜单将通过JavaScript动态生成 -->
+            </div>
+            
+            <div class="text-center mt-10">
+                <button id="load-more-btn" class="btn-secondary">
+                    <i class="fa fa-refresh mr-2"></i>更多菜品
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 17号吃家 -->
+    <section id="user-comments" class="py-16 bg-neutral-100">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-neutral-800 mb-4">17号吃家</h2>
+                <p class="text-lg text-neutral-600">1000个17号吃家眼中有1000株柠檬树</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 评论卡片 1 -->
+                <div class="bg-white rounded-xl p-6 shadow-md">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg mr-3">
+                            <i class="fa fa-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-neutral-800">小明</h4>
+                            <div class="star-rating text-sm">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-neutral-600 mb-4">"宫保鸡丁盖饭真的太好吃了！按照菜谱做出来的味道和餐厅一样，甚至更好！强烈推荐大家尝试。"</p>
+                    <div class="flex justify-between items-center text-sm text-neutral-500">
+                        <span>2023-06-15</span>
+                        <a href="recipe-detail.html?id=2" class="text-primary hover:text-secondary">查看相关菜谱</a>
+                    </div>
+                </div>
+                
+                <!-- 评论卡片 2 -->
+                <div class="bg-white rounded-xl p-6 shadow-md">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-secondary text-white rounded-full flex items-center justify-center font-bold text-lg mr-3">
+                            <i class="fa fa-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-neutral-800">小红</h4>
+                            <div class="star-rating text-sm">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-half-o"></i>
+                                <i class="fa fa-star-o"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-neutral-600 mb-4">"班尼迪克蛋的做法看起来有点复杂，但实际操作起来并没有想象中那么难。荷兰酱的配方很棒！"</p>
+                    <div class="flex justify-between items-center text-sm text-neutral-500">
+                        <span>2023-06-10</span>
+                        <a href="recipe-detail.html?id=3" class="text-primary hover:text-secondary">查看相关菜谱</a>
+                    </div>
+                </div>
+                
+                <!-- 评论卡片 3 -->
+                <div class="bg-white rounded-xl p-6 shadow-md">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-accent text-primary rounded-full flex items-center justify-center font-bold text-lg mr-3">
+                            <i class="fa fa-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-neutral-800">小李</h4>
+                            <div class="star-rating text-sm">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-o"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-neutral-600 mb-4">"黑椒牛排的做法很详细，第一次尝试煎牛排居然成功了！外焦里嫩，太满足了！"</p>
+                    <div class="flex justify-between items-center text-sm text-neutral-500">
+                        <span>2023-06-05</span>
+                        <a href="recipe-detail.html?id=6" class="text-primary hover:text-secondary">查看相关菜谱</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-10">
+                <a href="upload.html" class="btn-primary">
+                    <i class="fa fa-comment mr-2"></i>有话要说
+                </a>
+            </div>
+        </div>
+    </section>
+
+
+
+
+
+    <!-- 页脚 -->
+    <footer class="bg-neutral-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 关于我们 -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">关于我们</h3>
+                    <p class="text-neutral-400 mb-4">
+                        "今天要去吃自选嘛"是一个分享美食、菜谱和用餐体验的平台，让每一餐都充满惊喜！
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-white hover:text-accent transition-colors">
+                            <i class="fa fa-weixin text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-white hover:text-accent transition-colors">
+                            <i class="fa fa-weibo text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-white hover:text-accent transition-colors">
+                            <i class="fa fa-instagram text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-white hover:text-accent transition-colors">
+                            <i class="fa fa-youtube-play text-2xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 联系我们 -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">想说点啥？</h3>
+                    <form id="contact-form" class="space-y-4">
+                        <div>
+                            <input type="text" id="contact-name" placeholder="你的称呼" class="w-full bg-neutral-700 border border-neutral-600 rounded-lg px-4 py-2 text-white placeholder-neutral-400 focus:outline-none focus:border-primary">
+                        </div>
+                        <div>
+                            <input type="text" placeholder="你的联系方式（也可以不写噢！）" class="w-full bg-neutral-700 border border-neutral-600 rounded-lg px-4 py-2 text-white placeholder-neutral-400 focus:outline-none focus:border-primary">
+                        </div>
+                        <div>
+                            <textarea rows="4" placeholder="请输入你的留言..." class="w-full bg-neutral-700 border border-neutral-600 rounded-lg px-4 py-2 text-white placeholder-neutral-400 focus:outline-none focus:border-primary"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary w-full">
+                            <i class="fa fa-paper-plane mr-2"></i>发送留言
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-neutral-700 mt-8 pt-8 text-center">
+                <p class="text-neutral-500">© 2026 今天要去吃自选嘛. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 每周菜单数据
+        const weeklyMenu = {
+            '2026.2.24': {
+                day: '星期二',
+                meals: {
+                    breakfast: {
+                        coldDishes: ['圆白菜拌烟熏鸭胸', '泡菜', '香菜红椒拌豆腐丝', '小萝卜拌黄瓜', '麻酱面藕', '酸辣蕨根粉'],
+                        staples: ['三鲜肉包', '土豆丝卷饼', '麻团', '香煎玉米肠', '风味肉酱卷', '枣糕', '扬州炒饭', '黑豆豆浆', '牛奶'],
+                        soups: ['鸡汤馄饨', '绿豆麦仁粥', '小米粥'],
+                        wholeGrains: ['蒸红薯'],
+                        vegetarian: ['鸡蛋尖椒圈', '油焖黄豆芽'],
+                        eggs: ['茶鸡蛋', '煮鸡蛋']
+                    },
+                    lunch: {
+                        coldDishes: ['水果沙拉', '泡椒藕带', '洋葱拌木耳', '时蔬大拌菜', '爽口素丝', '水果沙拉'],
+                        staples: ['米饭', '紫米饭', '板栗小窝头', '椒盐火腿卷', '葱花饼', '蒸玉米', '蒸金瓜'],
+                        soups: ['玉米粥'],
+                        meatDishes: ['莲藕滋补排骨', '橙汁鸡球', '肉片家常豆腐', '鲍菇蒜苗肉丝'],
+                        vegetarian: ['醋溜白菜', '白灼时蔬'],
+                        soup: ['酸辣汤'],
+                        fruits: ['时令水果'],
+                        noodles: ['酸辣粉', '切面', '西红柿打卤面', '岐山臊子面'],
+                        healthyMeal: ['豉油蒸鱼片', '秋耳炒山药', '美味沙拉', '百合炒苦瓜', '杂粮饭', '杂粮 3 种', '海米裙带菜汤', '0 糖酸奶', '每日鲜果（仅打包）']
+                    },
+                    dinner: {
+                        meatDishes: ['红烧瓦块鱼', '酸菜汆白肉'],
+                        vegetarian: ['尖椒溜豆皮', '豉油快菜'],
+                        soup: ['番茄蛋花汤'],
+                        fruits: ['时令水果']
+                    }
+                }
+            },
+            '2026.2.25': {
+                day: '星期三',
+                meals: {
+                    breakfast: {
+                        coldDishes: ['黄瓜猪头肉', '三色玉米', '京糕娃娃菜', '炝拌西蓝花', '泡椒笋丁', '洋葱彩椒八宝豆干'],
+                        staples: ['猪肉白菜锅贴', '西葫芦鸡蛋素包', '芝麻油条', '烤早餐肠', '素馅菜团子', '蜂蜜蛋糕', '坚果发糕', '什锦炒面', '原味豆浆', '牛奶'],
+                        soups: ['豆腐脑', '素丸子汤', '玉米碴粥', '花生薏米粥'],
+                        wholeGrains: ['蒸小芋头'],
+                        vegetarian: ['洋葱木耳炒鸡蛋', '芹菜炒三丁'],
+                        eggs: ['茶鸡蛋', '煮鸡蛋']
+                    },
+                    lunch: {
+                        coldDishes: ['风味面皮', '黄飞鸿拌苦菊', '开胃海白菜', '凉拌佛手瓜', '蔬菜沙拉', '快菜拌面筋'],
+                        staples: ['米饭', '红豆饭', '红枣发糕', '巧克力奶香小馒头', '酱香饼', '蒸玉米', '蜂蜜烤山药'],
+                        soups: ['红豆粥'],
+                        meatDishes: ['剁椒翘嘴鱼', '香酥鸭', '冬瓜汆丸子', '五花青椒土豆片'],
+                        vegetarian: ['葱烧豆腐', '香菇油菜'],
+                        soup: ['裙带菜蛋花汤'],
+                        fruits: ['时令水果'],
+                        noodles: ['鸡丝炒河粉', '手擀面', '老北京打卤面', '素三丁打卤面'],
+                        healthyMeal: ['黑胡椒烤鸡腿肉', '香菇鲜蚕豆', '火腿鸡蛋沙拉', '鸡汁萝卜', '香草意面', '杂粮 3 种', '菠菜蘑菇汤', '0 糖酸奶', '每日鲜果（仅打包）']
+                    },
+                    dinner: {
+                        meatDishes: ['山城毛血旺', '豉油鸡球'],
+                        vegetarian: ['鸡蛋炒角瓜', '清炒菠菜'],
+                        soup: ['紫菜鸡蛋汤'],
+                        fruits: ['时令水果']
+                    }
+                }
+            },
+            '2026.2.26': {
+                day: '星期四',
+                meals: {
+                    breakfast: {
+                        coldDishes: ['生菜拌耳根肉', '香菜红椒拌辣油丝', '三色银耳', '炝拌土豆丝', '沙拉苦菊', '蒜香小油菜 (配枸杞)'],
+                        staples: ['猪肉香菇水煎包', '外婆菜杂粮包', '香煎火腿片', '椒盐葱花饼', '酥皮蛋挞', '牛肉粒炒饭', '黑芝麻豆浆', '牛奶'],
+                        soups: ['疙瘩汤', '雪菜龙须面', '杂粮八宝粥', '小米粥'],
+                        wholeGrains: ['蒸白薯'],
+                        vegetarian: ['豆泡烧白菜', '豉油菜心'],
+                        eggs: ['茶鸡蛋', '煮鸡蛋']
+                    },
+                    lunch: {
+                        coldDishes: ['黄瓜拌素鸡', '糖醋萝卜片', '开胃素百叶', '凉拌裙带菜', '水果沙拉', '蔬菜沙拉'],
+                        staples: ['米饭', '二米饭', '千层豆沙卷', '双色椰香卷', '肉酱卷', '葱花油渣饼', '蒸玉米', '贝贝南瓜'],
+                        soups: ['紫米粥'],
+                        meatDishes: ['雪菜蒸肉', '重庆辣子鸡', '淮山溜肉片', '鸡蛋西红柿'],
+                        vegetarian: ['海带白莲丝', '清炒菊花菜'],
+                        soup: ['白菜豆腐汤'],
+                        fruits: ['时令水果'],
+                        noodles: ['老北京炒疙瘩', '手擀面', '酸菜鸡丝打卤面', '肉沫茄子打卤面'],
+                        healthyMeal: ['白灼北极虾', '百合炒香芹', '田园风光沙拉', '香草烤蘑菇', '藜麦饭', '杂粮 3 种', '五红粉汤', '0 糖酸奶', '每日鲜果（仅打包）']
+                    },
+                    dinner: {
+                        meatDishes: ['香菇烧鸡块', '农家烩菜'],
+                        vegetarian: ['豆干香芹', '银耳盖菜'],
+                        soup: ['虾皮冬瓜汤'],
+                        fruits: ['时令水果']
+                    }
+                }
+            },
+            '2026.2.27': {
+                day: '星期五',
+                meals: {
+                    breakfast: {
+                        coldDishes: ['黄瓜拌蒜肠', '泡椒笋丝', '胡萝卜木耳拌腐竹', '芹菜拌桃仁', '彩椒拌鸡蛋干', '粉丝莲白丝'],
+                        staples: ['猪肉玉米蒸饺', '鸡蛋糊塌子', '葱花油饼', '台湾烤肠', '无糖红豆包', '培根披萨', '鸡蛋炒饼', '原味豆浆', '牛奶'],
+                        soups: ['豆腐脑', '骨汤河粉', '南瓜百合粥', '皮蛋瘦肉粥'],
+                        wholeGrains: ['蒸胡萝卜'],
+                        vegetarian: ['海米烧冬瓜', '粉丝小白菜'],
+                        eggs: ['茶鸡蛋', '煮鸡蛋']
+                    },
+                    lunch: {
+                        coldDishes: ['拌银耳', '蔬菜沙拉', '炝拌菜花', '爽口金针菇', '鲮鱼油麦菜', '桂花芸豆'],
+                        staples: ['米饭', '糙米饭', '奶香玉米饼', '香葱小花卷', '鸡蛋大饼', '蒸玉米', '烤土豆'],
+                        soups: ['花生麦仁粥'],
+                        meatDishes: ['浓香酸菜鱼', '避风塘鸡翅根', '宫爆肉丁', '老厨白菜'],
+                        vegetarian: ['京味炒合菜', '白灼快菜'],
+                        soup: ['番茄鸡蛋汤'],
+                        fruits: ['时令水果'],
+                        noodles: ['猪肉酸菜水饺', '鸡丝炒饼'],
+                        healthyMeal: ['鲜豆牛肉粒', '白菜炖豆腐', '美式沙拉', '口蘑西兰花', '全麦面包', '杂粮 3 种', '紫菜豆腐汤', '0 糖酸奶', '每日鲜果（仅打包）']
+                    },
+                    dinner: {
+                        meatDishes: ['山东把子肉', '孜然泥肠'],
+                        vegetarian: ['油渣手撕菜', '醋溜土豆丝'],
+                        soup: ['素菜汤'],
+                        fruits: ['时令水果']
+                    }
+                }
+            },
+            '2026.2.28': {
+                day: '星期六',
+                meals: {
+                    breakfast: {
+                        coldDishes: ['生菜拌耳根肉', '自制泡菜', '凉拌紫甘蓝', '香葱拌黑豆丝', '巧拌鸡汁脆笋', '洋葱木耳秋葵'],
+                        staples: ['千层肉饼', '小白菜鸡蛋素包', '火烧馍', '萝卜丝酥饼', '黑味小肚', '坚果奶香玉米饼', '广东腊肠炒饭', '黑豆豆浆', '牛奶'],
+                        soups: ['鸡汤馄饨', '红枣黑米粥', '小米粥'],
+                        wholeGrains: ['蒸蜜薯'],
+                        vegetarian: ['小炒菜花', '蛋皮炒油菜'],
+                        eggs: ['茶鸡蛋', '煮鸡蛋']
+                    },
+                    lunch: {
+                        coldDishes: ['香椿苗拌千叶豆腐', '水果沙拉', '海米快菜', '杏仁凉瓜', '拍黄瓜', '圆生菜紫叶生沙拉'],
+                        staples: ['米饭', '绿豆饭', '紫米发糕', '椒盐发面饼', '蒸玉米', '蒸贝贝瓜'],
+                        soups: ['二米粥'],
+                        meatDishes: ['水煮三鲜', '雷笋红烧肉', '青椒肉丝', '外婆菜炒鸡蛋'],
+                        vegetarian: ['上汤萝卜丝', '枸杞奶白菜'],
+                        soup: ['小枣银耳汤'],
+                        fruits: ['时令水果'],
+                        noodles: ['醪糟汤圆', '手擀面', '老北京炸酱面', '榨菜肉丝面'],
+                        healthyMeal: ['山药炖鸡块', '炒萝卜青笋片', '素菜沙拉', '海带丝蟹味菇', '糙米饭', '杂粮 3 种', '银耳冬瓜汤', '0 糖酸奶', '每日鲜果（仅打包）']
+                    },
+                    dinner: {
+                        meatDishes: ['红烧小丸子', '四川回锅肉'],
+                        vegetarian: ['红烧豆腐', '清炒油菜'],
+                        soup: ['酸辣豆腐汤'],
+                        fruits: ['时令水果']
+                    }
+                }
+            }
+        };
+
+        // 渲染每周菜单
+        function renderWeeklyMenu() {
+            const container = document.getElementById('weekly-menu-container');
+            container.innerHTML = '';
+
+            Object.keys(weeklyMenu).forEach(date => {
+                const dayData = weeklyMenu[date];
+                const dayElement = document.createElement('div');
+                dayElement.className = 'bg-white rounded-xl shadow-md overflow-hidden';
+
+                dayElement.innerHTML = `
+                    <div class="bg-primary text-white p-4">
+                        <h3 class="text-2xl font-bold">${date} ${dayData.day}</h3>
+                    </div>
+                    <div class="p-6">
+                        ${renderMealSection('早餐', dayData.meals.breakfast)}
+                        ${renderMealSection('午餐', dayData.meals.lunch)}
+                        ${renderMealSection('加班晚餐', dayData.meals.dinner)}
+                    </div>
+                `;
+
+                container.appendChild(dayElement);
+            });
+        }
+
+        // 渲染餐食部分
+        function renderMealSection(mealName, mealData) {
+            let html = `<div class="mb-8 last:mb-0">
+                            <h4 class="text-xl font-bold text-green-800 mb-4">${mealName}</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+
+            Object.keys(mealData).forEach(category => {
+                if (mealData[category] && mealData[category].length > 0) {
+                    const categoryName = getCategoryName(category);
+                    html += `
+                        <div>
+                            <h5 class="font-bold text-neutral-700 mb-2">${categoryName}</h5>
+                            <ul class="list-disc list-inside text-neutral-600">
+                                ${mealData[category].map(item => `<li><a href="recipe-detail.html?dish=${encodeURIComponent(item)}" class="text-neutral-600 hover:text-primary transition-colors">${item}</a></li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+            });
+
+            html += `</div></div>`;
+            return html;
+        }
+
+        // 获取分类名称
+        function getCategoryName(key) {
+            const names = {
+                coldDishes: '凉菜',
+                staples: '主食',
+                soups: '流食',
+                wholeGrains: '粗粮',
+                vegetarian: '素菜',
+                eggs: '蛋',
+                meatDishes: '荤菜',
+                soup: '汤',
+                fruits: '水果',
+                noodles: '风味 / 面条',
+                healthyMeal: '健康营养套餐'
+            };
+            return names[key] || key;
+        }
+
+        // 本周菜谱数据（用于搜索） - 不再使用，改为直接搜索weeklyMenu
+        
+        // 搜索功能
+        document.getElementById('search-button').addEventListener('click', performSearch);
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        function performSearch() {
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+            const searchResultsContainer = document.getElementById('search-results-container');
+            
+            // 获取搜索关键词
+            const keyword = searchInput.value.trim().toLowerCase();
+            
+            if (keyword) {
+                // 在weeklyMenu中搜索匹配的菜品
+                const matchedItems = [];
+
+                // 遍历每周菜单的每一天
+                Object.keys(weeklyMenu).forEach(date => {
+                    const dayData = weeklyMenu[date];
+                    const dayName = `${date} ${dayData.day}`;
+
+                    // 遍历每一餐
+                    Object.keys(dayData.meals).forEach(mealType => {
+                        const mealData = dayData.meals[mealType];
+                        const mealName = mealType === 'breakfast' ? '早餐' : 
+                                        mealType === 'lunch' ? '午餐' : '加班晚餐';
+
+                        // 遍历每一类菜品
+                        Object.keys(mealData).forEach(category => {
+                            const categoryName = getCategoryName(category);
+                            const dishes = mealData[category] || [];
+
+                            // 查找匹配的菜品
+                            dishes.forEach(dish => {
+                                if (dish.toLowerCase().includes(keyword)) {
+                                    matchedItems.push({
+                                        date: date,
+                                        dayName: dayName,
+                                        mealType: mealType,
+                                        mealName: mealName,
+                                        category: category,
+                                        categoryName: categoryName,
+                                        dish: dish
+                                    });
+                                }
+                            });
+                        });
+                    });
+                });
+
+                // 清空搜索结果容器
+                searchResultsContainer.innerHTML = '';
+
+                if (matchedItems.length > 0) {
+                    // 显示匹配的菜品信息
+                    let resultHTML = `
+                        <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-2xl font-bold text-primary">找到 ${matchedItems.length} 个相关菜品</h3>
+                                <span class="bg-green-100 text-green-800 font-bold py-2 px-4 rounded-full">本周供应</span>
+                            </div>
+                            <div class="space-y-4">
+                    `;
+
+                    // 按日期和餐别分组显示
+                    const groupedByDate = {};
+                    matchedItems.forEach(item => {
+                        if (!groupedByDate[item.date]) {
+                            groupedByDate[item.date] = {
+                                dayName: item.dayName,
+                                meals: {}
+                            };
+                        }
+                        if (!groupedByDate[item.date].meals[item.mealType]) {
+                            groupedByDate[item.date].meals[item.mealType] = {
+                                mealName: item.mealName,
+                                items: []
+                            };
+                        }
+                        groupedByDate[item.date].meals[item.mealType].items.push(item);
+                    });
+
+                    Object.keys(groupedByDate).forEach(date => {
+                        const dayData = groupedByDate[date];
+                        resultHTML += `
+                            <div class="border-l-4 border-primary pl-4 py-2">
+                                <h4 class="text-xl font-bold text-neutral-800 mb-2">${dayData.dayName}</h4>
+                        `;
+                        Object.keys(dayData.meals).forEach(mealType => {
+                            const mealData = dayData.meals[mealType];
+                            resultHTML += `
+                                <div class="mb-4">
+                                    <h5 class="font-bold text-neutral-700 mb-2">${mealData.mealName}</h5>
+                                    <ul class="list-disc list-inside text-neutral-600 space-y-1">
+                            `;
+                            mealData.items.forEach(item => {
+                                resultHTML += `
+                                    <li>
+                                        <span class="font-semibold">${item.dish}</span>
+                                        <span class="text-sm text-neutral-500">(${item.categoryName})</span>
+                                    </li>
+                                `;
+                            });
+                            resultHTML += `
+                                    </ul>
+                                </div>
+                            `;
+                        });
+                        resultHTML += `
+                            </div>
+                        `;
+                    });
+
+                    resultHTML += `
+                            </div>
+                        </div>
+                    `;
+                    searchResultsContainer.innerHTML = resultHTML;
+                } else {
+                    // 没有找到匹配的菜品
+                    searchResultsContainer.innerHTML = `
+                        <div class="bg-white p-6 rounded-xl shadow-md text-center">
+                            <i class="fa fa-search text-4xl text-neutral-400 mb-4"></i>
+                            <h3 class="text-xl font-bold text-neutral-800 mb-2">未找到相关菜品</h3>
+                            <p class="text-neutral-600">本周暂无此菜品供应，试试其他菜品吧！</p>
+                        </div>
+                    `;
+                }
+                
+                // 显示搜索结果
+                searchResults.classList.remove('hidden');
+                
+                // 滚动到搜索结果
+                searchResults.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        // 下载菜谱功能
+        document.getElementById('download-recipe-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // 使用提供的PDF URL
+            const pdfUrl = 'https://share.weiyun.com/document?fileId=RV1YTUJbbmJdVWpzfU5S_816dda0acda8f65256842498df740fec_c5f3a09d-bedd-4d7a-b24e-ad378ba3a93d&officeType=pdf&tdsourcetag=s_weiyun_file&sign=6c8c4add510ba05946b1e11f0e665f43a54da168&ts=1771999176';
+            const a = document.createElement('a');
+            a.href = pdfUrl;
+            a.download = '本周柠檬树古典版菜谱.pdf';
+            
+            // 触发下载
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            document.body.removeChild(a);
+            
+            // 显示提示
+            alert('菜谱下载成功！');
+        });
+
+        // 查看文科生手搓菜单功能 - 直接跳转到"这周吃什么"
+        document.getElementById('view-menu-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // 获取"这周吃什么"模块的元素
+            const weeklyRecommendations = document.getElementById('weekly-recommendations');
+            
+            // 平滑滚动到该模块
+            if (weeklyRecommendations) {
+                weeklyRecommendations.scrollIntoView({
+                    behavior: 'smooth'
+                });
+            }
+        });
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 渲染每周菜单
+            renderWeeklyMenu();
+
+            // 平滑滚动
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+                    
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                        
+                        // 如果是移动端，点击后关闭菜单
+                        const mobileMenu = document.getElementById('mobile-menu');
+                        if (!mobileMenu.classList.contains('hidden')) {
+                            mobileMenu.classList.add('hidden');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+    <!-- 登录模态框 -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-8 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-neutral-800">登录</h2>
+                <button class="close-modal text-neutral-500 hover:text-neutral-800">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="login-username" class="block text-neutral-700 mb-2">用户名</label>
+                    <input type="text" id="login-username" class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:border-primary" required>
+                </div>
+                <div class="mb-6">
+                    <label for="login-password" class="block text-neutral-700 mb-2">密码</label>
+                    <input type="password" id="login-password" class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:border-primary" required>
+                </div>
+                <button type="submit" class="w-full btn-primary">登录</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div id="register-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-8 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-neutral-800">注册</h2>
+                <button class="close-modal text-neutral-500 hover:text-neutral-800">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="register-form">
+                <div class="mb-4">
+                    <label for="register-username" class="block text-neutral-700 mb-2">用户名</label>
+                    <input type="text" id="register-username" class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:border-primary" required>
+                </div>
+                <div class="mb-4">
+                    <label for="register-password" class="block text-neutral-700 mb-2">密码</label>
+                    <input type="password" id="register-password" class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:border-primary" required>
+                </div>
+                <div class="mb-6">
+                    <label for="register-confirm-password" class="block text-neutral-700 mb-2">确认密码</label>
+                    <input type="password" id="register-confirm-password" class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:border-primary" required>
+                </div>
+                <button type="submit" class="w-full btn-primary">注册</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 用户中心模态框 -->
+    <div id="user-center-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-8 w-full max-w-4xl h-3/4 flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-neutral-800">用户中心</h2>
+                <button class="close-modal text-neutral-500 hover:text-neutral-800">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div id="user-center-content" class="flex-grow overflow-y-auto">
+                <h3 class="text-xl font-semibold mb-4">我的评论</h3>
+                <div id="user-comments-list">
+                    <!-- 用户评论将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
